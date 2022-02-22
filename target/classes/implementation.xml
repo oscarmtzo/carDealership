@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:os="http://www.mulesoft.org/schema/mule/os"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/os http://www.mulesoft.org/schema/mule/os/current/mule-os.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="get-all-cars" doc:id="f8a8daaf-cc59-4b1c-90df-c105ea424129" >
+		<logger level="INFO" doc:name="Logger" doc:id="0d6fff8f-4884-45e0-a520-c126485258f3" />
+		<os:retrieve-all doc:name="Retrieve all" doc:id="8dc0e365-8c4e-4a37-b01f-6cbd7ada2f1d" objectStore="Object_store"/>
+		<choice doc:name="Choice" doc:id="43c61044-796a-4e3b-880f-56bcd7d94801" >
+			<when expression="#[sizeOf(payload) != 0]">
+				<ee:transform doc:name="Transform Message" doc:id="24bcb73b-90fb-4876-8faf-3703dbfed15b">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload mapObject(value, key) ->
+{
+	"$(key)": read(value as String, "application/json")
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Transform Message" doc:id="5c91c49c-b7e1-4c4a-9c8a-60feb4fb553b" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "Data Base is empty, add new brands or cars."
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="get-model-flow" doc:id="4c82cf88-8f14-4d22-b9cd-1ce5f3b64ed4" >
+		<logger level="INFO" doc:name="Logger" doc:id="1568cd32-8a1a-431d-9b1c-068c4233b608" />
+		<set-variable value="#[message.attributes.uriParams.model as String]" doc:name="Set Variable" doc:id="e0d22bcd-cb5c-4d49-ba04-c694b87f21b9" variableName="model"/>
+		<os:retrieve doc:name="Retrieve" doc:id="190ddcb9-7fb9-4305-b895-7d724a53cdec" key="#[lower(attributes.uriParams.brand as String)]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message" doc:id="0edcce6c-7f7a-4813-b655-87f097dd3112" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var brandInfo =  read(write(payload,"application/json"), "application/json")
+---
+
+flatten(brandInfo.car_models filter(vars.model == $.model))
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="get-cars-brand" doc:id="cade34c7-ec49-4704-b946-0d7bc9fd8f33" >
+		<logger level="INFO" doc:name="Logger" doc:id="ffde8576-c9bc-4f5a-af19-e57ecb2bb373" />
+		<os:retrieve doc:name="Retrieve" doc:id="ff4a9c98-47fa-4344-8153-be05eebc0959" key="#[lower(attributes.uriParams.brand as String)]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message" doc:id="daf0a24a-a0a9-440b-91dc-4983d7b8631c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var brandInfo = read(write(payload,"application/json"), "application/json")
+---
+{
+	"name": brandInfo.name,
+	"car_models": brandInfo.car_models	
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="post-brand" doc:id="fbc545be-b908-4245-bc46-dcc8ea57c46a" >
+		<logger level="INFO" doc:name="Logger" doc:id="3a8a8fea-bd9c-4ba4-8fbf-3376452c5488" message="Starting creating brand flow"/>
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="c86170b5-a14f-4604-9d45-08cf55827066" variableName="payload"/>
+		<os:retrieve-all-keys doc:name="Retrieve all keys" doc:id="c3097b24-b05f-40e3-84b9-9ac75b19f057" objectStore="Object_store"/>
+		<choice doc:name="Choice" doc:id="e3e80239-fb5f-4d92-a87d-caed19aed9ba" >
+			<when expression="#[payload contains(vars.payload.name)]">
+				<ee:transform doc:name="Transform Message" doc:id="47967a5b-7a56-4111-85af-942b57df422d" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	message: "This brand already exist"
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</when>
+			<otherwise >
+				<os:store doc:name="Store" doc:id="5f3b72f1-c4ca-466b-a7bd-7e42c90c3004" key="#[lower(vars.payload.name)]" objectStore="Object_store">
+			<os:value><![CDATA[#[vars.payload]]]></os:value>
+		</os:store>
+				<ee:transform doc:name="Transform Message" doc:id="07803256-1937-4c4d-81a2-6f63aa3e9aae">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "Brand added successfully"
+}]]></ee:set-payload>
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="httpStatus"><![CDATA[201]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+			</otherwise>
+		</choice>
+	</flow>
+	<flow name="post-model" doc:id="c3d563e1-6bae-4ed9-a839-5c15210feb2e" >
+		<logger level="INFO" doc:name="Logger" doc:id="965876b0-9178-4293-a138-793a728541ec" message="Starting post car flow"/>
+		<set-variable value="#[payload]" doc:name="Set Variable" doc:id="d95da657-e9d8-44d2-830b-c665922b5271" variableName="car"/>
+		<os:retrieve doc:name="Retrieve" doc:id="cdb094ee-b6b6-4466-9d1b-410863a88386" key="#[lower(attributes.uriParams.brand as String)]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message" doc:id="97434e8c-2f75-4117-9461-d59d4dacef5a" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+var brandInfo = read(write(payload, "application/json"), "application/json")
+var newCar = [vars.car]
+
+---
+{
+	"name": brandInfo.name,
+	"car_models": brandInfo.car_models ++ newCar
+}
+]]></ee:set-payload>
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="httpStatus" ><![CDATA[201]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+		<os:store doc:name="Store" doc:id="bfbc364e-552e-40d9-9ef8-09f37b6c968d" key="#[lower(payload.name as String)]" objectStore="Object_store"/>
+	</flow>
+	<flow name="delete-brand" doc:id="df792821-bd5d-49f6-b887-4fba83b35eae" >
+		<logger level="INFO" doc:name="Logger" doc:id="4815d0c7-9b67-47d3-8ccd-6dbc47af64f8" />
+		<os:remove doc:name="Remove" doc:id="373ab8d8-1926-452e-a7aa-2689d14f1b5a" key="#[lower(attributes.uriParams.brand as String)]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message" doc:id="49283270-8592-44ee-96fc-67694b1c4834" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"message": "Brand deleted succesfully."
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+	</flow>
+	<flow name="delete-model" doc:id="949ab3e4-70f4-45fb-92a6-f863d564676f" >
+		<logger level="INFO" doc:name="Logger" doc:id="ed80be5e-d381-48fa-a7e8-03fb424285f2" />
+		<set-variable value="#[message.attributes.uriParams.model as String]" doc:name="" doc:id="f9bbaaa5-df96-4c8e-84e2-4f6bcdfc779a" variableName="car" />
+		<set-variable value="#[message.attributes.uriParams.brand]" doc:name="Set Variable" doc:id="636a82b3-fce5-4fe1-82fd-12c69f03062b" variableName="key"/>
+		<os:retrieve doc:name="Retrieve" doc:id="5a648446-bf1c-4245-aaa9-fac037dfa272" key="#[lower(attributes.uriParams.brand as String)]" objectStore="Object_store"/>
+		<ee:transform doc:name="Transform Message" doc:id="1400f64b-8d08-4c59-ba3f-b93a0b8b7db8" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+var brandInfo = read(write(payload, "application/json"), "application/json")
+var newCar = [vars.car]
+---
+{
+	"name": brandInfo.name,
+	"car_models": brandInfo.car_models filter(vars.model != $.model)
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<os:store doc:name="Store" doc:id="c385e8ff-592a-4e9c-a8e1-dbe8697a4153" key="#[lower(vars.key)]" objectStore="Object_store"/>
+	</flow>
+</mule>

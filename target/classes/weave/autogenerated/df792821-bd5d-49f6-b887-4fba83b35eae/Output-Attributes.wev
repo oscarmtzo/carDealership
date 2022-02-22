@@ -1,0 +1,23 @@
+%dw 2.0
+
+type auto_df792821_bd5d_49f6_b887_4fba83b35eae_Output_Attributes = {|
+  clientCertificate?: {|
+    publicKey?: {|  |}, 
+    "type"?: String, 
+    encoded?: Binary
+  |}, 
+  headers: {|  |}, 
+  listenerPath: String, 
+  method: String, 
+  queryParams: {|  |}, 
+  queryString: String, 
+  relativePath: String, 
+  remoteAddress: String, 
+  requestPath: String, 
+  requestUri: String, 
+  scheme: String, 
+  uriParams: {| brand: String |}, 
+  version: String, 
+  localAddress: String
+|}
+

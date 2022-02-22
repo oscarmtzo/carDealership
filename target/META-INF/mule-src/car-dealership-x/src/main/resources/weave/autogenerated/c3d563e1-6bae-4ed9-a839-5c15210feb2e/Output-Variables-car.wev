@@ -1,0 +1,4 @@
+%dw 2.0
+
+type auto_c3d563e1_6bae_4ed9_a839_5c15210feb2e_Output_Variables_car = Any
+

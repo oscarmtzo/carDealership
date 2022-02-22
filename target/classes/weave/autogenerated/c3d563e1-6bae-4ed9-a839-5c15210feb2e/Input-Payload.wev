@@ -1,0 +1,11 @@
+%dw 2.0
+
+type auto_c3d563e1_6bae_4ed9_a839_5c15210feb2e_Input_Payload = {
+  quantity?: Number, 
+  year: Number, 
+  model: String, 
+  serial_number: Number, 
+  status: "IN STOCK" | "COMING SOON" | "SOLD OUT", 
+  _?: Any
+}
+

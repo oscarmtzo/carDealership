@@ -1,0 +1,8 @@
+%dw 2.0
+
+type auto_949ab3e4_70f4_45fb_92a6_f863d564676f_Output_Payload = {
+  message: String, 
+  _?: Any
+} {"description": "Response based the execution",
+"label": "Default Response"}
+
